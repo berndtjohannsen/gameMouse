@@ -76,21 +76,12 @@ class GoalManager {
             goalImage.setDisplaySize(60, 60);
             console.log(`Added image for goal ${number} with key: goal${number}`);
 
-            // Add the number text
-            const text = this.scene.add.text(x, y, number.toString(), {
-                fontSize: '24px',
-                fill: '#000000',
-                fontStyle: 'bold'
-            }).setOrigin(0.5);
-            console.log(`Added text for goal ${number}`);
-
             return {
                 circle,
                 image: goalImage,
                 number,
                 x,
-                y,
-                text
+                y
             };
         } catch (error) {
             console.error(`Error creating goal ${number}:`, error);
@@ -229,7 +220,6 @@ class GoalManager {
         this.goals.forEach(goal => {
             if (goal.circle) goal.circle.destroy();
             if (goal.image) goal.image.destroy();
-            if (goal.text) goal.text.destroy();
         });
         this.goals = [];
 
