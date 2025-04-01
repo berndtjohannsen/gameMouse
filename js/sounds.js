@@ -23,10 +23,7 @@ class SoundManager {
         addSound('crash', { volume: 0.7 });
         addSound('fail', { volume: 0.7 });
         addSound('complete', { volume: 1 });
-
-        for (let i = 1; i <= 10; i++) {
-            addSound(`goal${i}`, { volume: 0.7 });
-        }
+        addSound('goal', { volume: 0.7 });  // Single goal sound
     }
 
     playBackground() {
@@ -40,10 +37,14 @@ class SoundManager {
     playSound(key) {
         if (this.sounds[key]) {
             try {
+                console.log(`Playing sound: ${key}`);  // Debug log
                 this.sounds[key].play();
             } catch (error) {
                 console.warn(`Failed to play sound: ${key}`, error);
             }
+        } else {
+            console.warn(`Sound not found in sounds object: ${key}`);  // Debug log
+            console.log('Available sounds:', Object.keys(this.sounds));  // Debug log
         }
     }
 

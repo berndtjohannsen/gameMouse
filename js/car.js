@@ -1,98 +1,88 @@
 class Car {
-    constructor(scene, x, y) {
+    constructor(scene) {
         this.scene = scene;
-        this.startX = x;
-        this.startY = y;
-        
-        // Create single car sprite using our triangle texture
-        this.sprite = scene.add.sprite(x, y, 'car');
-        scene.physics.add.existing(this.sprite);
-        
         this.speed = 0;
-        this.maxSpeed = 300;
-        this.currentDirection = 'n';
+        this.maxSpeed = 5;
+        this.acceleration = 0.2;
+        this.deceleration = 0.1;
         
-        this.engineSound = scene.sound.add('engine', { loop: true, volume: 0.5 });
-    }
-
-    update(cursor) {
-        const angle = Phaser.Math.Angle.Between(
-            this.sprite.x, 
-            this.sprite.y, 
-            cursor.x, 
-            cursor.y
-        );
+        // Create car sprite with adjusted size and rotation
+        this.sprite = scene.add.sprite(100, 550, 'car');
+        this.sprite.setDisplaySize(60, 40);  // Adjust these values based on your needs
+        this.sprite.setOrigin(0.5, 0.5);
+        this.sprite.rotation = -Math.PI / 2;  // Rotate 90 degrees counterclockwise so car points up
+        this.sprite.setDepth(2);  // Set car to appear above goals and obstacles
         
-        const distance = Phaser.Math.Distance.Between(
-            this.sprite.x, 
-            this.sprite.y, 
-            cursor.x, 
-            cursor.y
-        );
-
-        this.speed = Math.min(distance * 0.5, this.maxSpeed);
-        this.updateDirection(angle);
-        
-        if (distance > 5) {
-            this.scene.physics.moveTo(this.sprite, cursor.x, cursor.y, this.speed);
-            this.updateEngineSound();
-        } else {
-            this.sprite.body.setVelocity(0, 0);
-            this.engineSound.stop();
-        }
-    }
-
-    updateDirection(angle) {
-        const directions = {
-            'n':  { min: -0.393, max: 0.393 },
-            'ne': { min: 0.393, max: 1.178 },
-            'e':  { min: 1.178, max: 1.963 },
-            'se': { min: 1.963, max: 2.749 },
-            's':  { min: 2.749, max: -2.749 },
-            'sw': { min: -2.749, max: -1.963 },
-            'w':  { min: -1.963, max: -1.178 },
-            'nw': { min: -1.178, max: -0.393 }
-        };
-
-        for (const [dir, range] of Object.entries(directions)) {
-            if (this.isAngleInRange(angle, range.min, range.max)) {
-                if (this.currentDirection !== dir) {
-                    this.currentDirection = dir;
-                    this.sprite.setTexture(`car-${dir}`);
-                }
-                break;
-            }
-        }
-    }
-
-    isAngleInRange(angle, min, max) {
-        if (min <= max) {
-            return angle >= min && angle <= max;
-        } else {
-            return angle >= min || angle <= max;
-        }
-    }
-
-    updateEngineSound() {
-        const volume = this.speed / this.maxSpeed;
-        const rate = 0.5 + (volume * 0.5);
-
-        if (!this.engineSound.isPlaying) {
-            this.engineSound.play();
-        }
-        
-        this.engineSound.setRate(rate);
-        this.engineSound.setVolume(volume);
+        // Create trail effect
+        this.trail = scene.add.graphics();
+        this.trail.setDepth(1);  // Trail should be above background but below everything else
+        this.trail.lineStyle(2, 0x00ff00, 0.5);
+        this.trail.moveTo(this.sprite.x, this.sprite.y);
     }
 
     resetPosition() {
-        this.sprite.setPosition(this.startX, this.startY);
-        this.sprite.body.setVelocity(0, 0);
-        this.engineSound.stop();
+        this.sprite.x = 100;
+        this.sprite.y = 550;
+        this.sprite.rotation = -Math.PI / 2;  // Reset rotation to point upward
+        this.speed = 0;
+        this.trail.clear();
+        this.trail.moveTo(this.sprite.x, this.sprite.y);
     }
 
-    destroy() {
-        this.engineSound.stop();
-        this.sprite.destroy();
+    update() {
+        // Get cursor position
+        const pointer = this.scene.input.activePointer;
+        
+        // Calculate angle to cursor
+        const angleToCursor = Phaser.Math.Angle.Between(
+            this.sprite.x, 
+            this.sprite.y,
+            pointer.x, 
+            pointer.y
+        );
+        
+        // Calculate distance to cursor
+        const distance = Phaser.Math.Distance.Between(
+            this.sprite.x,
+            this.sprite.y,
+            pointer.x,
+            pointer.y
+        );
+
+        // Update speed based on distance
+        if (distance > 5) {
+            this.speed = Math.min(this.speed + this.acceleration, this.maxSpeed);
+        } else {
+            this.speed = Math.max(0, this.speed - this.deceleration);
+        }
+
+        // Calculate movement based on angle and speed
+        const moveX = Math.cos(angleToCursor) * this.speed;
+        const moveY = Math.sin(angleToCursor) * this.speed;
+
+        // Update position
+        this.sprite.x += moveX;
+        this.sprite.y += moveY;
+
+        // Keep car within bounds
+        this.sprite.x = Phaser.Math.Clamp(this.sprite.x, 30, this.scene.cameras.main.width - 30);
+        this.sprite.y = Phaser.Math.Clamp(this.sprite.y, 30, this.scene.cameras.main.height - 30);
+
+        // Update rotation (add offset since our sprite points right by default)
+        this.sprite.rotation = angleToCursor;
+
+        // Update trail
+        if (this.speed > 0) {
+            this.trail.lineTo(this.sprite.x, this.sprite.y);
+            this.trail.strokePath();
+        } else {
+            this.trail.clear();
+            this.trail.moveTo(this.sprite.x, this.sprite.y);
+        }
     }
+}
+
+// Make Car available globally
+if (typeof window !== 'undefined') {
+    window.Car = Car;
 } 
