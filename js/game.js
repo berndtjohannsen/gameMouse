@@ -4,6 +4,58 @@ if (typeof Phaser === 'undefined') {
     throw new Error('Phaser not loaded');
 }
 
+// Base game dimensions - match the background image aspect ratio
+const BASE_WIDTH = 800;
+const BASE_HEIGHT = 600;
+
+// Calculate the game size based on the viewport
+function calculateGameSize() {
+    const ratio = BASE_WIDTH / BASE_HEIGHT;
+    const viewport = {
+        width: window.innerWidth,
+        height: window.innerHeight
+    };
+    const viewportRatio = viewport.width / viewport.height;
+
+    let gameWidth, gameHeight;
+
+    if (viewportRatio >= ratio) {
+        // Viewport is wider than game ratio
+        gameHeight = viewport.height;
+        gameWidth = gameHeight * ratio;
+    } else {
+        // Viewport is taller than game ratio
+        gameWidth = viewport.width;
+        gameHeight = gameWidth / ratio;
+    }
+
+    return { width: gameWidth, height: gameHeight };
+}
+
+// Game configuration
+const gameConfig = {
+    type: Phaser.AUTO,
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        parent: 'game-container',
+        width: BASE_WIDTH,
+        height: BASE_HEIGHT
+    },
+    backgroundColor: '#000000',
+    physics: {
+        default: 'arcade',
+        arcade: {
+            debug: false
+        }
+    },
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    }
+};
+
 function preload() {
     // Add loading error handler
     this.load.on('loaderror', function(file) {
@@ -24,139 +76,317 @@ function preload() {
         this.load.image(`obst${i}`, `images/obst${i}.jpg`);
     }
 
-    // Add completion handler
-    this.load.on('complete', () => {
-        console.log('All assets loaded successfully');
-    });
+    // Load sound files
+    this.load.audio('background', 'sounds/background.mp3');
+    this.load.audio('crash', 'sounds/crash.mp3');
+    this.load.audio('fail', 'sounds/fail.mp3');
+    this.load.audio('complete', 'sounds/complete.mp3');
+    this.load.audio('goal', 'sounds/goal.mp3');
 }
 
 function create() {
     console.log('Creating game scene...');
     
-    // Add background first
-    const background = this.add.image(400, 300, 'background');
-    if (!background) {
-        console.error('Failed to create background');
-    }
+    // Create and position background
+    this.background = this.add.image(BASE_WIDTH/2, BASE_HEIGHT/2, 'background');
+    
+    // Scale background to fit the game area while maintaining aspect ratio
+    this.background.setDisplaySize(BASE_WIDTH, BASE_HEIGHT);
 
-    // Create button container
-    const buttonWidth = 80;
-    const buttonHeight = 30;
-    const buttonX = 80;
-    const buttonY = 550;
+    // Store game dimensions for other objects to use
+    this.gameScale = {
+        width: BASE_WIDTH,
+        height: BASE_HEIGHT,
+        scale: 1,
+        offsetX: 0,
+        offsetY: 0
+    };
 
-    // Create button background
-    const startButton = this.add.graphics();
-    startButton.lineStyle(3, 0x000000);
-    startButton.fillStyle(0x00ff00);
-    startButton.fillRoundedRect(buttonX - buttonWidth/2, buttonY - buttonHeight/2, 
-                               buttonWidth, buttonHeight, 15);
-    startButton.strokeRoundedRect(buttonX - buttonWidth/2, buttonY - buttonHeight/2, 
-                                 buttonWidth, buttonHeight, 15);
+    // Create start button using Phaser objects
+    const buttonWidth = BASE_WIDTH * 0.2;  // Smaller width
+    const buttonHeight = BASE_HEIGHT * 0.08;  // Slightly smaller height
+    const buttonX = BASE_WIDTH / 2;
+    const buttonY = BASE_HEIGHT * 0.85;
+    const cornerRadius = buttonHeight / 2;  // Rounded corners radius
+    const shadowOffset = 4;  // Shadow offset in pixels
 
-    // Add text
-    const startText = this.add.text(buttonX, buttonY, 'START', { 
-        fontSize: '20px',
+    // Create a container for the button
+    this.startButton = this.add.container(buttonX, buttonY);
+    this.startButton.setDepth(100);
+
+    // Create shadow effect using Graphics
+    const shadowGraphics = this.add.graphics();
+    shadowGraphics.fillStyle(0x000000, 0.3);
+    shadowGraphics.fillRoundedRect(
+        shadowOffset - buttonWidth/2,
+        shadowOffset - buttonHeight/2,
+        buttonWidth,
+        buttonHeight,
+        cornerRadius
+    );
+
+    // Create button background using Graphics
+    const buttonGraphics = this.add.graphics();
+    buttonGraphics.lineStyle(2, 0x008800);
+    buttonGraphics.fillStyle(0x00ff00);
+    buttonGraphics.fillRoundedRect(
+        -buttonWidth/2,
+        -buttonHeight/2,
+        buttonWidth,
+        buttonHeight,
+        cornerRadius
+    );
+    buttonGraphics.strokeRoundedRect(
+        -buttonWidth/2,
+        -buttonHeight/2,
+        buttonWidth,
+        buttonHeight,
+        cornerRadius
+    );
+    
+    // Create button text as a Phaser Text object
+    const buttonText = this.add.text(0, 0, 'START', {
+        fontSize: '32px',
         fontFamily: 'Arial',
         fontStyle: 'bold',
-        color: '#FFFFFF',
-        shadow: {
-            offsetX: 2,
-            offsetY: 2,
-            color: '#000000',
-            blur: 2,
-            fill: true
-        }
+        color: '#FFFFFF'
+    }).setOrigin(0.5);
+
+    // Add elements to container in correct order
+    this.startButton.add(shadowGraphics);
+    this.startButton.add(buttonGraphics);
+    this.startButton.add(buttonText);
+
+    // Make the button interactive
+    buttonGraphics.setInteractive(
+        new Phaser.Geom.Rectangle(
+            -buttonWidth/2,
+            -buttonHeight/2,
+            buttonWidth,
+            buttonHeight
+        ),
+        Phaser.Geom.Rectangle.Contains
+    );
+    
+    // Add hover effects
+    buttonGraphics.on('pointerover', () => {
+        buttonGraphics.clear();
+        buttonGraphics.lineStyle(2, 0x008800);
+        buttonGraphics.fillStyle(0x00dd00);
+        buttonGraphics.fillRoundedRect(
+            -buttonWidth/2,
+            -buttonHeight/2,
+            buttonWidth,
+            buttonHeight,
+            cornerRadius
+        );
+        buttonGraphics.strokeRoundedRect(
+            -buttonWidth/2,
+            -buttonHeight/2,
+            buttonWidth,
+            buttonHeight,
+            cornerRadius
+        );
+        this.startButton.setScale(1.05);
     });
-    startText.setOrigin(0.5);
 
-    // Create hitarea
-    const hitArea = this.add.rectangle(buttonX, buttonY, buttonWidth, buttonHeight);
-    hitArea.setInteractive({ cursor: 'pointer' });
-
-    // Hover effects
-    hitArea.on('pointerover', () => {
-        startButton.clear();
-        startButton.lineStyle(3, 0x000000);
-        startButton.fillStyle(0x00dd00);
-        startButton.fillRoundedRect(buttonX - buttonWidth/2, buttonY - buttonHeight/2, 
-                                   buttonWidth, buttonHeight, 15);
-        startButton.strokeRoundedRect(buttonX - buttonWidth/2, buttonY - buttonHeight/2, 
-                                     buttonWidth, buttonHeight, 15);
-        startText.setScale(1.05);
+    buttonGraphics.on('pointerout', () => {
+        buttonGraphics.clear();
+        buttonGraphics.lineStyle(2, 0x008800);
+        buttonGraphics.fillStyle(0x00ff00);
+        buttonGraphics.fillRoundedRect(
+            -buttonWidth/2,
+            -buttonHeight/2,
+            buttonWidth,
+            buttonHeight,
+            cornerRadius
+        );
+        buttonGraphics.strokeRoundedRect(
+            -buttonWidth/2,
+            -buttonHeight/2,
+            buttonWidth,
+            buttonHeight,
+            cornerRadius
+        );
+        this.startButton.setScale(1);
     });
 
-    hitArea.on('pointerout', () => {
-        startButton.clear();
-        startButton.lineStyle(3, 0x000000);
-        startButton.fillStyle(0x00ff00);
-        startButton.fillRoundedRect(buttonX - buttonWidth/2, buttonY - buttonHeight/2, 
-                                   buttonWidth, buttonHeight, 15);
-        startButton.strokeRoundedRect(buttonX - buttonWidth/2, buttonY - buttonHeight/2, 
-                                     buttonWidth, buttonHeight, 15);
-        startText.setScale(1);
+    buttonGraphics.on('pointerdown', () => {
+        this.startGame();
     });
 
-    hitArea.on('pointerdown', startGame.bind(this));
-
-    // Initialize managers
+    // Initialize game objects
     this.goalManager = new GoalManager(this);
-    goalManager = this.goalManager;
-
-    // Initialize car
     this.car = new Car(this);
-    car = this.car;
+    this.gameStarted = false;
 
     console.log('Game scene created');
+
+    // Add startGame method to the scene
+    this.startGame = function() {
+        if (this.gameStarted) return;
+        
+        console.log('Starting game...');
+        this.gameStarted = true;
+        
+        // Hide start button
+        this.startButton.setVisible(false);
+        
+        // Reset and create goals
+        console.log('Creating goals and obstacles...');
+        this.goalManager.reset();
+        this.goalManager.createGoals();
+        this.goalManager.createObstacles();
+        
+        // Reset car position
+        this.car.resetPosition();
+        
+        // Hide the default cursor
+        this.input.setDefaultCursor('none');
+    };
+
+    // Add showPlayAgainButton method to the scene
+    this.showPlayAgainButton = function() {
+        // Create button dimensions and style
+        const buttonWidth = this.game.config.width * 0.2;
+        const buttonHeight = this.game.config.height * 0.08;
+        const buttonX = this.game.config.width / 2;
+        const buttonY = this.game.config.height / 2;
+        const cornerRadius = buttonHeight / 2;
+        const shadowOffset = 4;
+
+        // Create a container for the button
+        const playAgainButton = this.add.container(buttonX, buttonY);
+        playAgainButton.setDepth(100);
+
+        // Create shadow effect
+        const shadowGraphics = this.add.graphics();
+        shadowGraphics.fillStyle(0x000000, 0.3);
+        shadowGraphics.fillRoundedRect(
+            shadowOffset - buttonWidth/2,
+            shadowOffset - buttonHeight/2,
+            buttonWidth,
+            buttonHeight,
+            cornerRadius
+        );
+
+        // Create button background
+        const buttonGraphics = this.add.graphics();
+        buttonGraphics.lineStyle(2, 0x008800);
+        buttonGraphics.fillStyle(0x00ff00);
+        buttonGraphics.fillRoundedRect(
+            -buttonWidth/2,
+            -buttonHeight/2,
+            buttonWidth,
+            buttonHeight,
+            cornerRadius
+        );
+        buttonGraphics.strokeRoundedRect(
+            -buttonWidth/2,
+            -buttonHeight/2,
+            buttonWidth,
+            buttonHeight,
+            cornerRadius
+        );
+
+        // Create button text with smaller font size
+        const buttonText = this.add.text(0, 0, 'PLAY AGAIN', {
+            fontSize: '24px',  // Reduced from 32px
+            fontFamily: 'Arial',
+            fontStyle: 'bold',
+            color: '#FFFFFF'
+        }).setOrigin(0.5);
+
+        // Add elements to container
+        playAgainButton.add(shadowGraphics);
+        playAgainButton.add(buttonGraphics);
+        playAgainButton.add(buttonText);
+
+        // Make the button interactive
+        buttonGraphics.setInteractive(
+            new Phaser.Geom.Rectangle(
+                -buttonWidth/2,
+                -buttonHeight/2,
+                buttonWidth,
+                buttonHeight
+            ),
+            Phaser.Geom.Rectangle.Contains
+        );
+
+        // Add hover effects
+        buttonGraphics.on('pointerover', () => {
+            buttonGraphics.clear();
+            buttonGraphics.lineStyle(2, 0x008800);
+            buttonGraphics.fillStyle(0x00dd00);
+            buttonGraphics.fillRoundedRect(
+                -buttonWidth/2,
+                -buttonHeight/2,
+                buttonWidth,
+                buttonHeight,
+                cornerRadius
+            );
+            buttonGraphics.strokeRoundedRect(
+                -buttonWidth/2,
+                -buttonHeight/2,
+                buttonWidth,
+                buttonHeight,
+                cornerRadius
+            );
+            playAgainButton.setScale(1.05);
+        });
+
+        buttonGraphics.on('pointerout', () => {
+            buttonGraphics.clear();
+            buttonGraphics.lineStyle(2, 0x008800);
+            buttonGraphics.fillStyle(0x00ff00);
+            buttonGraphics.fillRoundedRect(
+                -buttonWidth/2,
+                -buttonHeight/2,
+                buttonWidth,
+                buttonHeight,
+                cornerRadius
+            );
+            buttonGraphics.strokeRoundedRect(
+                -buttonWidth/2,
+                -buttonHeight/2,
+                buttonWidth,
+                buttonHeight,
+                cornerRadius
+            );
+            playAgainButton.setScale(1);
+        });
+
+        // Add click handler
+        buttonGraphics.on('pointerdown', () => {
+            // Remove the button
+            playAgainButton.destroy();
+            
+            // Start a new game
+            this.startGame();
+        });
+    };
 }
 
 function update() {
-    // Don't do anything if game hasn't started
-    if (!gameStarted) {
-        return;
-    }
-
+    if (!this.gameStarted) return;
+    
     // Update car
-    car.update();
+    this.car.update();
+    
+    // Check collisions
+    this.goalManager.checkCollisions(this.car);
 }
 
-function startGame() {
-    if (gameStarted) return;
-    
-    console.log('Starting game...');
-    
-    // Reset game state
-    gameStarted = true;
-    
-    // Reset and create goals
-    console.log('Creating goals and obstacles...');
-    goalManager.reset();
-    goalManager.createGoals();
-    goalManager.createObstacles();
-    console.log(`Created ${goalManager.goals.length} goals and ${goalManager.obstacles.length} obstacles`);
+// Get initial game size
+const gameSize = calculateGameSize();
 
-    // Reset car position
-    car.resetPosition();
+// Create game instance
+let game = new Phaser.Game(gameConfig);
 
-    // Hide the default cursor
-    this.input.setDefaultCursor('none');
-}
-
-// Declare variables
-let goalManager;
-let car;
-let gameStarted = false;
-
-// Create the game configuration and instance
-const gameConfig = {
-    type: Phaser.AUTO,
-    width: 800,
-    height: 600,
-    scene: {
-        preload: preload,
-        create: create,
-        update: update
+// Handle window resizing
+window.addEventListener('resize', () => {
+    if (game.scale) {
+        game.scale.resize(window.innerWidth, window.innerHeight);
+        game.scale.refresh();
     }
-};
-
-let game = new Phaser.Game(gameConfig); 
+}); 

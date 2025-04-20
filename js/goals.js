@@ -4,8 +4,28 @@ class GoalManager {
         this.goals = [];
         this.obstacles = [];
         this.currentGoal = 1;
-        // Define minimum distance between objects
+        // Define minimum distance between objects (scaled)
         this.minDistance = 100;
+        
+        // Store base dimensions for scaling
+        this.baseWidth = 800;
+        this.baseHeight = 600;
+    }
+
+    // Helper method to scale coordinates
+    scaleX(x) {
+        return x * (this.scene.scale.width / this.baseWidth);
+    }
+
+    scaleY(y) {
+        return y * (this.scene.scale.height / this.baseHeight);
+    }
+
+    // Helper method to scale size
+    scaleSize(size) {
+        const scaleX = this.scene.scale.width / this.baseWidth;
+        const scaleY = this.scene.scale.height / this.baseHeight;
+        return size * Math.min(scaleX, scaleY);
     }
 
     reset() {
@@ -27,7 +47,7 @@ class GoalManager {
     isTooClose(x, y, objects) {
         return objects.some(obj => {
             const distance = Phaser.Math.Distance.Between(x, y, obj.x, obj.y);
-            return distance < this.minDistance;
+            return distance < this.scaleSize(this.minDistance);
         });
     }
 
@@ -40,14 +60,21 @@ class GoalManager {
 
             // Keep trying until we find a valid position
             do {
-                x = Phaser.Math.Between(100, 700);
-                y = Phaser.Math.Between(100, 500);
+                // Generate positions in base coordinates
+                const baseX = Phaser.Math.Between(100, 700);
+                const baseY = Phaser.Math.Between(100, 500);
+                
+                // Scale the positions and add background offset
+                x = this.scaleX(baseX) + (this.scene.backgroundOffset?.x || 0);
+                y = this.scaleY(baseY) + (this.scene.backgroundOffset?.y || 0);
+                
                 attempts++;
             } while (this.isTooClose(x, y, this.goals) && attempts < maxAttempts);
 
-            // Create goal sprite
+            // Create goal sprite with scaled size
             const sprite = this.scene.add.sprite(x, y, `goal${i}`);
-            sprite.setDisplaySize(60, 60);
+            const scaledSize = this.scaleSize(60);
+            sprite.setDisplaySize(scaledSize, scaledSize);
             sprite.setDepth(1);  // Set goals to appear above background but below car
 
             this.goals.push({
@@ -68,14 +95,21 @@ class GoalManager {
 
             // Keep trying until we find a valid position
             do {
-                x = Phaser.Math.Between(100, 700);
-                y = Phaser.Math.Between(100, 500);
+                // Generate positions in base coordinates
+                const baseX = Phaser.Math.Between(100, 700);
+                const baseY = Phaser.Math.Between(100, 500);
+                
+                // Scale the positions and add background offset
+                x = this.scaleX(baseX) + (this.scene.backgroundOffset?.x || 0);
+                y = this.scaleY(baseY) + (this.scene.backgroundOffset?.y || 0);
+                
                 attempts++;
             } while (this.isTooClose(x, y, [...this.goals, ...this.obstacles]) && attempts < maxAttempts);
 
-            // Create obstacle sprite
+            // Create obstacle sprite with scaled size
             const sprite = this.scene.add.sprite(x, y, `obst${i}`);
-            sprite.setDisplaySize(60, 60);
+            const scaledSize = this.scaleSize(60);
+            sprite.setDisplaySize(scaledSize, scaledSize);
             sprite.setDepth(1);  // Set obstacles to appear above background but below car
 
             this.obstacles.push({
