@@ -36,8 +36,7 @@ function calculateGameSize() {
 const gameConfig = {
     type: Phaser.AUTO,
     scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH,
+        mode: Phaser.Scale.NONE,
         parent: 'game-container',
         width: BASE_WIDTH,
         height: BASE_HEIGHT
@@ -385,8 +384,25 @@ let game = new Phaser.Game(gameConfig);
 
 // Handle window resizing
 window.addEventListener('resize', () => {
-    if (game.scale) {
-        game.scale.resize(window.innerWidth, window.innerHeight);
-        game.scale.refresh();
+    if (game && game.canvas) {
+        const container = document.getElementById('game-container');
+        if (container) {
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+            
+            // Calculate scale to fit while maintaining aspect ratio
+            const scaleX = containerWidth / BASE_WIDTH;
+            const scaleY = containerHeight / BASE_HEIGHT;
+            const scale = Math.min(scaleX, scaleY);
+            
+            // Apply the scale
+            game.canvas.style.width = `${BASE_WIDTH * scale}px`;
+            game.canvas.style.height = `${BASE_HEIGHT * scale}px`;
+        }
     }
-}); 
+});
+
+// Call resize after a short delay to ensure game is initialized
+setTimeout(() => {
+    window.dispatchEvent(new Event('resize'));
+}, 100); 
