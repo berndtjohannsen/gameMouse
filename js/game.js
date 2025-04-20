@@ -86,6 +86,9 @@ function preload() {
 function create() {
     console.log('Creating game scene...');
     
+    // Initialize sound manager first
+    this.soundManager = new SoundManager(this);
+    
     // Create and position background
     this.background = this.add.image(BASE_WIDTH/2, BASE_HEIGHT/2, 'background');
     
@@ -101,123 +104,61 @@ function create() {
         offsetY: 0
     };
 
-    // Create start button using Phaser objects
-    const buttonWidth = BASE_WIDTH * 0.2;  // Smaller width
-    const buttonHeight = BASE_HEIGHT * 0.08;  // Slightly smaller height
-    const buttonX = BASE_WIDTH / 2;
-    const buttonY = BASE_HEIGHT * 0.85;
-    const cornerRadius = buttonHeight / 2;  // Rounded corners radius
-    const shadowOffset = 4;  // Shadow offset in pixels
-
-    // Create a container for the button
-    this.startButton = this.add.container(buttonX, buttonY);
-    this.startButton.setDepth(100);
-
-    // Create shadow effect using Graphics
-    const shadowGraphics = this.add.graphics();
-    shadowGraphics.fillStyle(0x000000, 0.3);
-    shadowGraphics.fillRoundedRect(
-        shadowOffset - buttonWidth/2,
-        shadowOffset - buttonHeight/2,
-        buttonWidth,
-        buttonHeight,
-        cornerRadius
-    );
-
-    // Create button background using Graphics
-    const buttonGraphics = this.add.graphics();
-    buttonGraphics.lineStyle(2, 0x008800);
-    buttonGraphics.fillStyle(0x00ff00);
-    buttonGraphics.fillRoundedRect(
-        -buttonWidth/2,
-        -buttonHeight/2,
-        buttonWidth,
-        buttonHeight,
-        cornerRadius
-    );
-    buttonGraphics.strokeRoundedRect(
-        -buttonWidth/2,
-        -buttonHeight/2,
-        buttonWidth,
-        buttonHeight,
-        cornerRadius
-    );
-    
-    // Create button text as a Phaser Text object
-    const buttonText = this.add.text(0, 0, 'START', {
-        fontSize: '32px',
-        fontFamily: 'Arial',
-        fontStyle: 'bold',
-        color: '#FFFFFF'
-    }).setOrigin(0.5);
-
-    // Add elements to container in correct order
-    this.startButton.add(shadowGraphics);
-    this.startButton.add(buttonGraphics);
-    this.startButton.add(buttonText);
-
-    // Make the button interactive
-    buttonGraphics.setInteractive(
-        new Phaser.Geom.Rectangle(
-            -buttonWidth/2,
-            -buttonHeight/2,
-            buttonWidth,
-            buttonHeight
-        ),
-        Phaser.Geom.Rectangle.Contains
-    );
-    
-    // Add hover effects
-    buttonGraphics.on('pointerover', () => {
-        buttonGraphics.clear();
-        buttonGraphics.lineStyle(2, 0x008800);
-        buttonGraphics.fillStyle(0x00dd00);
-        buttonGraphics.fillRoundedRect(
-            -buttonWidth/2,
-            -buttonHeight/2,
-            buttonWidth,
-            buttonHeight,
-            cornerRadius
-        );
-        buttonGraphics.strokeRoundedRect(
-            -buttonWidth/2,
-            -buttonHeight/2,
-            buttonWidth,
-            buttonHeight,
-            cornerRadius
-        );
-        this.startButton.setScale(1.05);
-    });
-
-    buttonGraphics.on('pointerout', () => {
-        buttonGraphics.clear();
-        buttonGraphics.lineStyle(2, 0x008800);
-        buttonGraphics.fillStyle(0x00ff00);
-        buttonGraphics.fillRoundedRect(
-            -buttonWidth/2,
-            -buttonHeight/2,
-            buttonWidth,
-            buttonHeight,
-            cornerRadius
-        );
-        buttonGraphics.strokeRoundedRect(
-            -buttonWidth/2,
-            -buttonHeight/2,
-            buttonWidth,
-            buttonHeight,
-            cornerRadius
-        );
-        this.startButton.setScale(1);
-    });
-
-    buttonGraphics.on('pointerdown', () => {
-        this.startGame();
-    });
-
     // Initialize game objects
     this.goalManager = new GoalManager(this);
     this.car = new Car(this);
     this.gameStarted = false;
+
+    // Create start button
+    const buttonX = BASE_WIDTH / 2;
+    const buttonY = BASE_HEIGHT * 0.85;
+    const buttonWidth = 200;
+    const buttonHeight = 60;
+
+    // Create button background
+    const buttonBg = this.add.rectangle(buttonX, buttonY, buttonWidth, buttonHeight, 0x00ff00);
+    buttonBg.setOrigin(0.5);
+    buttonBg.setDepth(100);
+    
+    // Make the background interactive
+    buttonBg.setInteractive();
+    buttonBg.input.cursor = 'pointer';
+    
+    // Create button text
+    const buttonText = this.add.text(buttonX, buttonY, 'START', {
+        fontSize: '32px',
+        fontFamily: 'Arial',
+        fontStyle: 'bold',
+        color: '#ffffff'
+    }).setOrigin(0.5).setDepth(101);
+
+    // Add hover effects
+    buttonBg.on('pointerover', () => {
+        buttonBg.setFillStyle(0x00dd00);
+    });
+    
+    buttonBg.on('pointerout', () => {
+        buttonBg.setFillStyle(0x00ff00);
+    });
+    
+    // Add click handler
+    buttonBg.on('pointerdown', () => {
+        console.log('Button clicked/touched');
+        this.startGame();
+    });
+
+    // Store button elements for later use
+    this.startButton = {
+        bg: buttonBg,
+        text: buttonText
+    };
+
+    // Force input system update
+    this.time.delayedCall(100, () => {
+        this.scale.refresh();
+        this.input.enabled = true;
+        this.input.setPollAlways();
+    });
 
     console.log('Game scene created');
 
@@ -228,8 +169,9 @@ function create() {
         console.log('Starting game...');
         this.gameStarted = true;
         
-        // Hide start button
-        this.startButton.setVisible(false);
+        // Hide all button elements
+        this.startButton.bg.setVisible(false);
+        this.startButton.text.setVisible(false);
         
         // Reset and create goals
         console.log('Creating goals and obstacles...');

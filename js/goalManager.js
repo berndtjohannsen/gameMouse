@@ -19,57 +19,94 @@ class GoalManager {
 
     createGoals() {
         const goalSize = 40;
+        const margin = 50; // Minimum distance from edges
+        const minDistance = 80; // Minimum distance between objects
         
-        // Define goal positions (in game coordinates)
-        const positions = [
-            { x: 640, y: 120 },  // Goal 2
-            { x: 240, y: 240 },  // Goal 3
-            { x: 560, y: 300 },  // Goal 4
-            { x: 160, y: 360 },  // Goal 5
-            { x: 400, y: 420 },  // Goal 6
-            { x: 640, y: 480 },  // Goal 7
-            { x: 240, y: 480 },  // Goal 8
-            { x: 160, y: 120 },  // Goal 9
-            { x: 480, y: 180 }   // Goal 10
-        ];
-
-        // Create goals
-        positions.forEach((pos, index) => {
-            const goalNumber = index + 2; // Goals start from 2
-            const goal = this.scene.add.image(pos.x, pos.y, `goal${goalNumber}`);
-            goal.setDisplaySize(goalSize, goalSize);
-            goal.setDepth(1);
-            goal.number = goalNumber;
+        // Create goals with random positions
+        for (let i = 2; i <= 10; i++) {
+            let validPosition = false;
+            let attempts = 0;
+            let x, y;
             
-            // Add hit area for better collision detection
-            goal.setInteractive({ pixelPerfect: true });
+            // Keep trying until we find a valid position or max attempts reached
+            while (!validPosition && attempts < 100) {
+                attempts++;
+                // Generate random position within bounds
+                x = margin + Math.random() * (this.scene.game.config.width - 2 * margin);
+                y = margin + Math.random() * (this.scene.game.config.height - 2 * margin);
+                
+                // Check if this position is valid (not overlapping with existing objects)
+                validPosition = this.isPositionValid(x, y, minDistance);
+            }
             
-            this.goals.push(goal);
-        });
+            if (validPosition) {
+                const goal = this.scene.add.image(x, y, `goal${i}`);
+                goal.setDisplaySize(goalSize, goalSize);
+                goal.setDepth(1);
+                goal.number = i;
+                
+                // Add hit area for better collision detection
+                goal.setInteractive({ pixelPerfect: true });
+                
+                this.goals.push(goal);
+            }
+        }
     }
 
     createObstacles() {
         const obstacleSize = 50;
+        const margin = 50; // Minimum distance from edges
+        const minDistance = 80; // Minimum distance between objects
         
-        // Define obstacle positions (in game coordinates)
-        const positions = [
-            { x: 320, y: 180 },
-            { x: 480, y: 360 },
-            { x: 160, y: 420 },
-            { x: 640, y: 240 }
-        ];
+        // Create obstacles with random positions
+        for (let i = 1; i <= 4; i++) {
+            let validPosition = false;
+            let attempts = 0;
+            let x, y;
+            
+            // Keep trying until we find a valid position or max attempts reached
+            while (!validPosition && attempts < 100) {
+                attempts++;
+                // Generate random position within bounds
+                x = margin + Math.random() * (this.scene.game.config.width - 2 * margin);
+                y = margin + Math.random() * (this.scene.game.config.height - 2 * margin);
+                
+                // Check if this position is valid (not overlapping with existing objects)
+                validPosition = this.isPositionValid(x, y, minDistance);
+            }
+            
+            if (validPosition) {
+                const obstacle = this.scene.add.image(x, y, `obst${i}`);
+                obstacle.setDisplaySize(obstacleSize, obstacleSize);
+                obstacle.setDepth(1);
+                
+                // Add hit area for better collision detection
+                obstacle.setInteractive({ pixelPerfect: true });
+                
+                this.obstacles.push(obstacle);
+            }
+        }
+    }
 
-        // Create obstacles
-        positions.forEach((pos, index) => {
-            const obstacle = this.scene.add.image(pos.x, pos.y, `obst${index + 1}`);
-            obstacle.setDisplaySize(obstacleSize, obstacleSize);
-            obstacle.setDepth(1);
-            
-            // Add hit area for better collision detection
-            obstacle.setInteractive({ pixelPerfect: true });
-            
-            this.obstacles.push(obstacle);
-        });
+    // Helper method to check if a position is valid (not overlapping with existing objects)
+    isPositionValid(x, y, minDistance) {
+        // Check against all existing goals
+        for (const goal of this.goals) {
+            const distance = Phaser.Math.Distance.Between(x, y, goal.x, goal.y);
+            if (distance < minDistance) {
+                return false;
+            }
+        }
+        
+        // Check against all existing obstacles
+        for (const obstacle of this.obstacles) {
+            const distance = Phaser.Math.Distance.Between(x, y, obstacle.x, obstacle.y);
+            if (distance < minDistance) {
+                return false;
+            }
+        }
+        
+        return true;
     }
 
     checkCollisions(car) {
@@ -110,32 +147,33 @@ class GoalManager {
         });
     }
 
-    handleGoalCollision(goal) {
-        if (goal.number === this.currentGoal) {
-            this.soundManager.playSound('goal');
-            this.currentGoal++;
-            goal.destroy();
-            this.goals = this.goals.filter(g => g !== goal);
-            
-            if (this.currentGoal > 10) {
-                this.soundManager.playSound('complete');
-                // Game complete logic here
-            }
-        }
+    handleObstacleCollision() {
+        console.log('Obstacle collision detected');
+        this.scene.soundManager.playSound('crash');
+        this.scene.soundManager.stopBackground();
+        this.scene.car.stop();
+        this.scene.gameStarted = false;
+        // Show default cursor
+        this.scene.input.setDefaultCursor('default');
+        this.scene.showPlayAgainButton();
     }
 
-    handleObstacleCollision() {
-        // Stop the car
-        this.scene.car.stop();
+    handleGoalCollision(goal) {
+        console.log('Goal collision detected');
+        this.scene.soundManager.playSound('goal');
+        goal.destroy();
+        this.currentGoal++;
         
-        // Play crash sound
-        this.soundManager.playSound('crash');
-        
-        // End the game
-        this.scene.gameStarted = false;
-        
-        // Show play again button
-        this.scene.showPlayAgainButton();
+        if (this.currentGoal > 10) {
+            console.log('Game completed!');
+            this.scene.soundManager.playSound('complete');
+            this.scene.soundManager.stopBackground();
+            this.scene.car.stop();
+            this.scene.gameStarted = false;
+            // Show default cursor
+            this.scene.input.setDefaultCursor('default');
+            this.scene.showPlayAgainButton();
+        }
     }
 }
 
