@@ -6,17 +6,22 @@
     <title>Counting Game</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
-<body>
+<body> 
     <div id="game-container"></div>
     
     <!-- Load Phaser from CDN first -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     
-    <!-- Load our game files after Phaser -->
-    <script src="js/placeholders.js"></script>
-    <script src="js/car.js"></script>
-    <script src="js/goals.js"></script>
-    <script src="js/sounds.js"></script>
-    <script src="js/game.js"></script>
+    <!-- Cache-busting script -->
+    <script>
+        const timestamp = new Date().getTime();
+        document.write(`
+            <script src="js/placeholders.js?t=${timestamp}"><\/script>
+            <script src="js/car.js?t=${timestamp}"><\/script>
+            <script src="js/goalManager.js?t=${timestamp}"><\/script>
+            <script src="js/sounds.js?t=${timestamp}"><\/script>
+            <script src="js/game.js?t=${timestamp}"><\/script>
+        `);
+    </script>
 </body>
 </html> 
