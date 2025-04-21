@@ -23,7 +23,7 @@ class GoalManager {
         const minDistance = 80; // Minimum distance between objects
         
         // Create goals with random positions
-        for (let i = 2; i <= 10; i++) {
+        for (let i = 1; i <= 10; i++) {
             let validPosition = false;
             let attempts = 0;
             let x, y;
