@@ -112,44 +112,125 @@ function create() {
     // Create start button
     const buttonX = BASE_WIDTH / 2;
     const buttonY = BASE_HEIGHT * 0.85;
-    const buttonWidth = 200;
-    const buttonHeight = 60;
+    const buttonHeight = BASE_HEIGHT * 0.08;
+    const cornerRadius = buttonHeight / 2;
+    const shadowOffset = 4;
+    const padding = 30; // Increased padding for better spacing
 
-    // Create button background
-    const buttonBg = this.add.rectangle(buttonX, buttonY, buttonWidth, buttonHeight, 0x00ff00);
-    buttonBg.setOrigin(0.5);
-    buttonBg.setDepth(100);
-    
-    // Make the background interactive
-    buttonBg.setInteractive();
-    buttonBg.input.cursor = 'pointer';
-    
-    // Create button text
-    const buttonText = this.add.text(buttonX, buttonY, 'START', {
-        fontSize: '32px',
+    // Create button text first to measure its width
+    const buttonText = this.add.text(0, 0, 'START', {
+        fontSize: '24px',
         fontFamily: 'Arial',
         fontStyle: 'bold',
-        color: '#ffffff'
-    }).setOrigin(0.5).setDepth(101);
+        color: '#FFFFFF'
+    }).setOrigin(0.5);
+
+    // Calculate button width based on text width plus padding
+    const buttonWidth = buttonText.width + (padding * 2);
+
+    // Create a container for the button
+    const startButtonContainer = this.add.container(buttonX, buttonY);
+    startButtonContainer.setDepth(100);
+
+    // Create shadow effect
+    const shadowGraphics = this.add.graphics();
+    shadowGraphics.fillStyle(0x000000, 0.3);
+    shadowGraphics.fillRoundedRect(
+        shadowOffset - buttonWidth/2,
+        shadowOffset - buttonHeight/2,
+        buttonWidth,
+        buttonHeight,
+        cornerRadius
+    );
+
+    // Create button background
+    const buttonGraphics = this.add.graphics();
+    buttonGraphics.lineStyle(2, 0x008800);
+    buttonGraphics.fillStyle(0x00ff00);
+    buttonGraphics.fillRoundedRect(
+        -buttonWidth/2,
+        -buttonHeight/2,
+        buttonWidth,
+        buttonHeight,
+        cornerRadius
+    );
+    buttonGraphics.strokeRoundedRect(
+        -buttonWidth/2,
+        -buttonHeight/2,
+        buttonWidth,
+        buttonHeight,
+        cornerRadius
+    );
+
+    // Add elements to container
+    startButtonContainer.add(shadowGraphics);
+    startButtonContainer.add(buttonGraphics);
+    startButtonContainer.add(buttonText);
+
+    // Make the button interactive
+    buttonGraphics.setInteractive(
+        new Phaser.Geom.Rectangle(
+            -buttonWidth/2,
+            -buttonHeight/2,
+            buttonWidth,
+            buttonHeight
+        ),
+        Phaser.Geom.Rectangle.Contains
+    );
 
     // Add hover effects
-    buttonBg.on('pointerover', () => {
-        buttonBg.setFillStyle(0x00dd00);
+    buttonGraphics.on('pointerover', () => {
+        buttonGraphics.clear();
+        buttonGraphics.lineStyle(2, 0x008800);
+        buttonGraphics.fillStyle(0x00dd00);
+        buttonGraphics.fillRoundedRect(
+            -buttonWidth/2,
+            -buttonHeight/2,
+            buttonWidth,
+            buttonHeight,
+            cornerRadius
+        );
+        buttonGraphics.strokeRoundedRect(
+            -buttonWidth/2,
+            -buttonHeight/2,
+            buttonWidth,
+            buttonHeight,
+            cornerRadius
+        );
+        startButtonContainer.setScale(1.05);
     });
-    
-    buttonBg.on('pointerout', () => {
-        buttonBg.setFillStyle(0x00ff00);
+
+    buttonGraphics.on('pointerout', () => {
+        buttonGraphics.clear();
+        buttonGraphics.lineStyle(2, 0x008800);
+        buttonGraphics.fillStyle(0x00ff00);
+        buttonGraphics.fillRoundedRect(
+            -buttonWidth/2,
+            -buttonHeight/2,
+            buttonWidth,
+            buttonHeight,
+            cornerRadius
+        );
+        buttonGraphics.strokeRoundedRect(
+            -buttonWidth/2,
+            -buttonHeight/2,
+            buttonWidth,
+            buttonHeight,
+            cornerRadius
+        );
+        startButtonContainer.setScale(1);
     });
-    
+
     // Add click handler
-    buttonBg.on('pointerdown', () => {
+    buttonGraphics.on('pointerdown', () => {
         console.log('Button clicked/touched');
         this.startGame();
     });
 
     // Store button elements for later use
     this.startButton = {
-        bg: buttonBg,
+        container: startButtonContainer,
+        graphics: buttonGraphics,
         text: buttonText
     };
 
@@ -169,9 +250,11 @@ function create() {
         console.log('Starting game...');
         this.gameStarted = true;
         
-        // Hide all button elements
-        this.startButton.bg.setVisible(false);
-        this.startButton.text.setVisible(false);
+        // Hide the button container
+        this.startButton.container.setVisible(false);
+        
+        // Start background music
+        this.soundManager.playBackground();
         
         // Reset and create goals
         console.log('Creating goals and obstacles...');
@@ -188,13 +271,23 @@ function create() {
 
     // Add showPlayAgainButton method to the scene
     this.showPlayAgainButton = function() {
-        // Create button dimensions and style
-        const buttonWidth = this.game.config.width * 0.2;
-        const buttonHeight = this.game.config.height * 0.08;
-        const buttonX = this.game.config.width / 2;
-        const buttonY = this.game.config.height / 2;
+        const buttonX = BASE_WIDTH / 2;
+        const buttonY = BASE_HEIGHT / 2;
+        const buttonHeight = BASE_HEIGHT * 0.08;
         const cornerRadius = buttonHeight / 2;
         const shadowOffset = 4;
+        const padding = 30; // Same padding as start button
+
+        // Create button text first to measure its width
+        const buttonText = this.add.text(0, 0, 'PLAY AGAIN', {
+            fontSize: '24px',
+            fontFamily: 'Arial',
+            fontStyle: 'bold',
+            color: '#FFFFFF'
+        }).setOrigin(0.5);
+
+        // Calculate button width based on text width plus padding
+        const buttonWidth = buttonText.width + (padding * 2);
 
         // Create a container for the button
         const playAgainButton = this.add.container(buttonX, buttonY);
@@ -229,14 +322,6 @@ function create() {
             buttonHeight,
             cornerRadius
         );
-
-        // Create button text with smaller font size
-        const buttonText = this.add.text(0, 0, 'PLAY AGAIN', {
-            fontSize: '24px',  // Reduced from 32px
-            fontFamily: 'Arial',
-            fontStyle: 'bold',
-            color: '#FFFFFF'
-        }).setOrigin(0.5);
 
         // Add elements to container
         playAgainButton.add(shadowGraphics);
