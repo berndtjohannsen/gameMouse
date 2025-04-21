@@ -39,37 +39,11 @@ class Car {
         this.justReset = false;  // New flag to track reset state
     }
 
-    resetPosition() {
-        // Reset position
-        this.sprite.x = 100;
-        this.sprite.y = 550;
-        this.sprite.rotation = -Math.PI / 2;
-        this.sprite.setVisible(true);
-        
-        // Reset trail
-        this.trail.clear();
-        this.trailPoints = [];
-        this.trailPoints.push({ x: this.sprite.x, y: this.sprite.y });
-        this.trail.moveTo(this.sprite.x, this.sprite.y);
-        
-        // Reset last position to match starting position
-        this.lastPointerX = 100;
-        this.lastPointerY = 550;
-        this.frameCount = 0;
-        
-        // Set reset flag
-        this.justReset = true;
-        
-        // Allow car to move again
-        this.canMove = true;
-    }
-
-    stop() {
-        this.canMove = false;
-    }
-
     update() {
-        if (!this.scene.gameStarted || !this.canMove) return;
+        if (!this.scene.gameStarted || !this.canMove) {
+            this.scene.soundManager.stopEngine();
+            return;
+        }
 
         const pointer = this.scene.input.activePointer;
         
@@ -84,6 +58,12 @@ class Car {
             gameX,
             gameY
         );
+
+        // Calculate speed based on distance
+        this.speed = Math.min(distance / 10, this.maxSpeed);
+        
+        // Update engine sound based on speed
+        this.scene.soundManager.updateEngineSound(this.speed);
 
         // Only update position if movement is significant
         if (distance > this.minMovementThreshold) {
@@ -135,6 +115,36 @@ class Car {
             }
             this.trail.strokePath();
         }
+    }
+
+    stop() {
+        this.canMove = false;
+        this.scene.soundManager.stopEngine();
+    }
+
+    resetPosition() {
+        // Reset position
+        this.sprite.x = 100;
+        this.sprite.y = 550;
+        this.sprite.rotation = -Math.PI / 2;
+        this.sprite.setVisible(true);
+        
+        // Reset trail
+        this.trail.clear();
+        this.trailPoints = [];
+        this.trailPoints.push({ x: this.sprite.x, y: this.sprite.y });
+        this.trail.moveTo(this.sprite.x, this.sprite.y);
+        
+        // Reset last position to match starting position
+        this.lastPointerX = 100;
+        this.lastPointerY = 550;
+        this.frameCount = 0;
+        
+        // Set reset flag
+        this.justReset = true;
+        
+        // Allow car to move again
+        this.canMove = true;
     }
 }
 

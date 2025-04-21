@@ -81,6 +81,7 @@ function preload() {
     this.load.audio('fail', 'sounds/fail.mp3');
     this.load.audio('complete', 'sounds/complete.mp3');
     this.load.audio('goal', 'sounds/goal.mp3');
+    this.load.audio('engine', 'sounds/engine.mp3');
 }
 
 function create() {

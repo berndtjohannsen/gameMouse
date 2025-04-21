@@ -17,11 +17,28 @@ class SoundManager {
         };
 
         // Initialize sounds with error handling
-        addSound('background', { loop: true, volume: 0.5 });
+        addSound('background', { loop: true, volume: 0.2 });
         addSound('crash', { volume: 0.7 });
         addSound('fail', { volume: 0.7 });
         addSound('complete', { volume: 1 });
         addSound('goal', { volume: 0.7 });
+        addSound('engine', { loop: true, volume: 0.5 });
+    }
+
+    updateEngineSound(speed) {
+        if (this.sounds.engine) {
+            if (!this.sounds.engine.isPlaying) {
+                this.sounds.engine.play();
+            }
+            const rate = 0.5 + (speed / 15) * 3.0;
+            this.sounds.engine.setRate(rate);
+        }
+    }
+
+    stopEngine() {
+        if (this.sounds.engine) {
+            this.sounds.engine.stop();
+        }
     }
 
     playBackground() {
