@@ -1,3 +1,22 @@
+// Goal and Obstacle constants
+const GOAL_SIZE = 40;
+const GOAL_DEPTH = 1;
+const MAX_GOALS = 10;
+
+const OBSTACLE_SIZE = 50;
+const OBSTACLE_DEPTH = 1;
+const MAX_OBSTACLES = 4;
+
+const PLACEMENT_MARGIN = 50;
+const MIN_DISTANCE_BETWEEN_OBJECTS = 80;
+const MAX_PLACEMENT_ATTEMPTS = 100;
+
+const COLLISION_RADIUS_DIVISOR = 1.5;
+
+const CAR_START_X_NO_COLLISION = 100;
+const CAR_START_Y_NO_COLLISION = 550;
+
+
 class GoalManager {
     constructor(scene) {
         this.scene = scene;
@@ -5,7 +24,6 @@ class GoalManager {
         this.obstacles = [];
         this.currentGoal = 1;
         this.soundManager = new SoundManager(scene);
-        this.collisionHandled = false;  // Add flag to track collision state
     }
 
     reset() {
@@ -18,31 +36,27 @@ class GoalManager {
     }
 
     createGoals() {
-        const goalSize = 40;
-        const margin = 50; // Minimum distance from edges
-        const minDistance = 80; // Minimum distance between objects
-        
         // Create goals with random positions
-        for (let i = 1; i <= 10; i++) {
+        for (let i = 1; i <= MAX_GOALS; i++) {
             let validPosition = false;
             let attempts = 0;
             let x, y;
             
             // Keep trying until we find a valid position or max attempts reached
-            while (!validPosition && attempts < 100) {
+            while (!validPosition && attempts < MAX_PLACEMENT_ATTEMPTS) {
                 attempts++;
                 // Generate random position within bounds
-                x = margin + Math.random() * (this.scene.game.config.width - 2 * margin);
-                y = margin + Math.random() * (this.scene.game.config.height - 2 * margin);
+                x = PLACEMENT_MARGIN + Math.random() * (this.scene.game.config.width - 2 * PLACEMENT_MARGIN);
+                y = PLACEMENT_MARGIN + Math.random() * (this.scene.game.config.height - 2 * PLACEMENT_MARGIN);
                 
                 // Check if this position is valid (not overlapping with existing objects)
-                validPosition = this.isPositionValid(x, y, minDistance);
+                validPosition = this.isPositionValid(x, y, MIN_DISTANCE_BETWEEN_OBJECTS);
             }
             
             if (validPosition) {
                 const goal = this.scene.add.image(x, y, `goal${i}`);
-                goal.setDisplaySize(goalSize, goalSize);
-                goal.setDepth(1);
+                goal.setDisplaySize(GOAL_SIZE, GOAL_SIZE);
+                goal.setDepth(GOAL_DEPTH);
                 goal.number = i;
                 
                 // Add hit area for better collision detection
@@ -54,31 +68,27 @@ class GoalManager {
     }
 
     createObstacles() {
-        const obstacleSize = 50;
-        const margin = 50; // Minimum distance from edges
-        const minDistance = 80; // Minimum distance between objects
-        
         // Create obstacles with random positions
-        for (let i = 1; i <= 4; i++) {
+        for (let i = 1; i <= MAX_OBSTACLES; i++) {
             let validPosition = false;
             let attempts = 0;
             let x, y;
             
             // Keep trying until we find a valid position or max attempts reached
-            while (!validPosition && attempts < 100) {
+            while (!validPosition && attempts < MAX_PLACEMENT_ATTEMPTS) {
                 attempts++;
                 // Generate random position within bounds
-                x = margin + Math.random() * (this.scene.game.config.width - 2 * margin);
-                y = margin + Math.random() * (this.scene.game.config.height - 2 * margin);
+                x = PLACEMENT_MARGIN + Math.random() * (this.scene.game.config.width - 2 * PLACEMENT_MARGIN);
+                y = PLACEMENT_MARGIN + Math.random() * (this.scene.game.config.height - 2 * PLACEMENT_MARGIN);
                 
                 // Check if this position is valid (not overlapping with existing objects)
-                validPosition = this.isPositionValid(x, y, minDistance);
+                validPosition = this.isPositionValid(x, y, MIN_DISTANCE_BETWEEN_OBJECTS);
             }
             
             if (validPosition) {
                 const obstacle = this.scene.add.image(x, y, `obst${i}`);
-                obstacle.setDisplaySize(obstacleSize, obstacleSize);
-                obstacle.setDepth(1);
+                obstacle.setDisplaySize(OBSTACLE_SIZE, OBSTACLE_SIZE);
+                obstacle.setDepth(OBSTACLE_DEPTH);
                 
                 // Add hit area for better collision detection
                 obstacle.setInteractive({ pixelPerfect: true });
@@ -111,7 +121,7 @@ class GoalManager {
 
     checkCollisions(car) {
         // Don't check for collisions if car is at starting position
-        if (car.sprite.x === 100 && car.sprite.y === 550) {
+        if (car.sprite.x === CAR_START_X_NO_COLLISION && car.sprite.y === CAR_START_Y_NO_COLLISION) {
             return;
         }
 
@@ -124,7 +134,7 @@ class GoalManager {
                 obstacle.y
             );
             
-            if (distance < obstacle.displayWidth / 1.5) {
+            if (distance < obstacle.displayWidth / COLLISION_RADIUS_DIVISOR) {
                 this.handleObstacleCollision();
                 return;
             }
@@ -140,7 +150,7 @@ class GoalManager {
                     goal.y
                 );
                 
-                if (distance < goal.displayWidth / 1.5) {
+                if (distance < goal.displayWidth / COLLISION_RADIUS_DIVISOR) {
                     this.handleGoalCollision(goal);
                 }
             }
@@ -164,7 +174,7 @@ class GoalManager {
         goal.destroy();
         this.currentGoal++;
         
-        if (this.currentGoal > 10) {
+        if (this.currentGoal > MAX_GOALS) {
             console.log('Game completed!');
             this.scene.soundManager.playSound('complete');
             this.scene.soundManager.stopBackground();

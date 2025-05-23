@@ -1,40 +1,71 @@
+// Car physics & appearance
+const CAR_START_X = 100;
+const CAR_START_Y = 550;
+const CAR_DISPLAY_WIDTH = 60;
+const CAR_DISPLAY_HEIGHT = 40;
+const CAR_ROTATION_ORIGIN_X = 0.8;
+const CAR_ROTATION_ORIGIN_Y = 0.5;
+const CAR_INITIAL_ROTATION = -Math.PI / 2; // -90 degrees
+const CAR_DEPTH = 2;
+
+// Movement parameters
+const MAX_SPEED = 15;
+const ACCELERATION_FACTOR = 2.0; // (Note: current code doesn't actually use this as traditional acceleration)
+const DECELERATION_FACTOR = 2.5; // (Note: current code doesn't actually use this as traditional deceleration)
+const MIN_CURSOR_DISTANCE_MOVE = 0.5;
+const DECELERATION_DISTANCE_START = 3; // (Note: current code doesn't actually use this as traditional deceleration)
+const MIN_MOVEMENT_THRESHOLD = 1; // Minimum pointer distance change to update car position
+const CURSOR_TO_SPEED_DIVISOR = 10;
+const ROTATION_SMOOTHING_MAX = 0.15;
+const ROTATION_SMOOTHING_NUMERATOR = 0.3;
+const ROTATION_SMOOTHING_DENOMINATOR_ADDEND = 0.1;
+
+
+// Trail
+const TRAIL_LINE_WIDTH = 2;
+const TRAIL_LINE_COLOR = 0x00ff00;
+const TRAIL_LINE_ALPHA = 0.5;
+const MAX_TRAIL_POINTS = 50;
+const TRAIL_UPDATE_FREQUENCY_FRAMES = 2; // Add point every N frames
+const TRAIL_DEPTH = 1;
+
 class Car {
     constructor(scene) {
         this.scene = scene;
         
         // Speed parameters
         this.speed = 0;                    // Current speed of the car (pixels per frame)
-        this.maxSpeed = 15;                // Maximum speed the car can reach
-        this.acceleration = 2.0;           // How quickly the car speeds up
-        this.deceleration = 2.5;           // How quickly the car slows down
-        this.minDistance = 0.5;            // Minimum distance to cursor before car starts moving
-        this.decelerationDistance = 3;     // Distance at which deceleration starts
+        this.maxSpeed = MAX_SPEED;                // Maximum speed the car can reach
+        this.acceleration = ACCELERATION_FACTOR;           // How quickly the car speeds up
+        this.deceleration = DECELERATION_FACTOR;           // How quickly the car slows down
+        this.minDistance = MIN_CURSOR_DISTANCE_MOVE;            // Minimum distance to cursor before car starts moving
+        this.decelerationDistance = DECELERATION_DISTANCE_START;     // Distance at which deceleration starts
         
         // Create car sprite
-        this.sprite = scene.add.sprite(100, 550, 'car');
-        this.sprite.setDisplaySize(60, 40);
-        this.sprite.setOrigin(0.8, 0.5);     // Rotation point
-        this.sprite.rotation = -Math.PI / 2;  // Initial rotation
-        this.sprite.setDepth(2);             // Display order
+        this.sprite = scene.add.sprite(CAR_START_X, CAR_START_Y, 'car');
+        this.sprite.setDisplaySize(CAR_DISPLAY_WIDTH, CAR_DISPLAY_HEIGHT);
+        this.sprite.setOrigin(CAR_ROTATION_ORIGIN_X, CAR_ROTATION_ORIGIN_Y);     // Rotation point
+        this.sprite.rotation = CAR_INITIAL_ROTATION;  // Initial rotation
+        this.sprite.setDepth(CAR_DEPTH);             // Display order
         this.sprite.setVisible(true);
         
         // Create trail effect
         this.trail = scene.add.graphics();
-        this.trail.setDepth(1);
-        this.trail.lineStyle(2, 0x00ff00, 0.5);
+        this.trail.setDepth(TRAIL_DEPTH);
+        this.trail.lineStyle(TRAIL_LINE_WIDTH, TRAIL_LINE_COLOR, TRAIL_LINE_ALPHA);
         this.trail.moveTo(this.sprite.x, this.sprite.y);
 
         // Trail management
         this.trailPoints = [];
-        this.maxTrailPoints = 50; // Reduced trail length
-        this.trailUpdateFrequency = 2; // Only add trail point every N frames
+        this.maxTrailPoints = MAX_TRAIL_POINTS; // Reduced trail length
+        this.trailUpdateFrequency = TRAIL_UPDATE_FREQUENCY_FRAMES; // Only add trail point every N frames
         this.frameCount = 0;
         this.trailPoints.push({ x: this.sprite.x, y: this.sprite.y });
 
         // Movement parameters
         this.lastPointerX = this.sprite.x;
         this.lastPointerY = this.sprite.y;
-        this.minMovementThreshold = 1; // Minimum movement distance to update position
+        this.minMovementThreshold = MIN_MOVEMENT_THRESHOLD; // Minimum movement distance to update position
         this.canMove = true;  // Flag to control car movement
         this.justReset = false;  // New flag to track reset state
     }
@@ -60,7 +91,7 @@ class Car {
         );
 
         // Calculate speed based on distance
-        this.speed = Math.min(distance / 10, this.maxSpeed);
+        this.speed = Math.min(distance / CURSOR_TO_SPEED_DIVISOR, this.maxSpeed);
         
         // Update engine sound based on speed
         this.scene.soundManager.updateEngineSound(this.speed);
@@ -87,7 +118,7 @@ class Car {
             if (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
             if (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
             
-            const smoothingFactor = Math.min(0.15, 0.3 / (Math.abs(angleDiff) + 0.1));
+            const smoothingFactor = Math.min(ROTATION_SMOOTHING_MAX, ROTATION_SMOOTHING_NUMERATOR / (Math.abs(angleDiff) + ROTATION_SMOOTHING_DENOMINATOR_ADDEND));
             this.sprite.rotation += angleDiff * smoothingFactor;
 
             // Update trail less frequently
@@ -108,7 +139,7 @@ class Car {
         // Draw trail
         this.trail.clear();
         if (this.trailPoints.length > 1) {
-            this.trail.lineStyle(2, 0x00ff00, 0.5);
+            this.trail.lineStyle(TRAIL_LINE_WIDTH, TRAIL_LINE_COLOR, TRAIL_LINE_ALPHA);
             this.trail.moveTo(this.trailPoints[0].x, this.trailPoints[0].y);
             for (let i = 1; i < this.trailPoints.length; i++) {
                 this.trail.lineTo(this.trailPoints[i].x, this.trailPoints[i].y);
@@ -124,9 +155,9 @@ class Car {
 
     resetPosition() {
         // Reset position
-        this.sprite.x = 100;
-        this.sprite.y = 550;
-        this.sprite.rotation = -Math.PI / 2;
+        this.sprite.x = CAR_START_X;
+        this.sprite.y = CAR_START_Y;
+        this.sprite.rotation = CAR_INITIAL_ROTATION;
         this.sprite.setVisible(true);
         
         // Reset trail
@@ -136,8 +167,8 @@ class Car {
         this.trail.moveTo(this.sprite.x, this.sprite.y);
         
         // Reset last position to match starting position
-        this.lastPointerX = 100;
-        this.lastPointerY = 550;
+        this.lastPointerX = CAR_START_X;
+        this.lastPointerY = CAR_START_Y;
         this.frameCount = 0;
         
         // Set reset flag
