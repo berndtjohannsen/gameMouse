@@ -165,6 +165,9 @@ class GoalManager {
         this.scene.gameStarted = false;
         // Show default cursor
         this.scene.input.setDefaultCursor('default');
+        if (this.scene.gameTimerEvent) {
+            this.scene.gameTimerEvent.remove(false);
+        }
         this.scene.showPlayAgainButton();
     }
 
@@ -182,6 +185,9 @@ class GoalManager {
             this.scene.gameStarted = false;
             // Show default cursor
             this.scene.input.setDefaultCursor('default');
+            if (this.scene.gameTimerEvent) {
+                this.scene.gameTimerEvent.remove(false);
+            }
             this.scene.showPlayAgainButton();
         }
     }

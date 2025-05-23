@@ -37,6 +37,14 @@ const BACKGROUND_ORIGIN_Y = 0.5;
 const DEFAULT_CURSOR_STYLE = 'none'; // For hiding cursor during gameplay
 const VISIBLE_CURSOR_STYLE = 'default'; // For menus/buttons
 
+// Timer Display
+const TIMER_TEXT_X_OFFSET = 30; // Offset from the right edge
+const TIMER_TEXT_Y_OFFSET = 20; // Offset from the top edge
+const TIMER_FONT_SIZE = '20px';
+const TIMER_FONT_FAMILY = 'Arial';
+const TIMER_TEXT_COLOR = '#FFFFFF';
+const TIMER_INITIAL_TEXT = 'Time: 0s';
+
 // Game configuration
 const gameConfig = {
     type: Phaser.AUTO,
@@ -240,6 +248,23 @@ function create() {
         }
     );
 
+    // Create Timer Display
+    this.timerText = this.add.text(
+        BASE_WIDTH - TIMER_TEXT_X_OFFSET, // X position
+        TIMER_TEXT_Y_OFFSET,    // Y position
+        TIMER_INITIAL_TEXT,
+        {
+            fontSize: TIMER_FONT_SIZE,
+            fontFamily: TIMER_FONT_FAMILY,
+            color: TIMER_TEXT_COLOR,
+            align: 'right' // Align text to the right for neatness at the edge
+        }
+    ).setOrigin(1, 0); // Set origin to top-right
+    this.timerText.setDepth(BUTTON_DEPTH + 1); // Ensure timer is above buttons
+
+    this.timerStartTime = 0;
+    this.gameTimerEvent = null;
+
     // Force input system update
     this.time.delayedCall(INPUT_POLL_DELAY_MS, () => {
         this.scale.refresh();
@@ -275,6 +300,25 @@ function create() {
         
         // Hide the default cursor
         this.input.setDefaultCursor(DEFAULT_CURSOR_STYLE);
+
+        // Reset and start timer
+        if (this.gameTimerEvent) {
+            this.gameTimerEvent.remove(false); // Remove previous timer if any
+        }
+        this.timerStartTime = this.time.now;
+        this.timerText.setText(TIMER_INITIAL_TEXT); // Reset display to "Time: 0s"
+
+        this.gameTimerEvent = this.time.addEvent({
+            delay: 1000, // 1000 ms = 1 second
+            callback: function() {
+                if (this.gameStarted) {
+                    const elapsedSeconds = Math.floor((this.time.now - this.timerStartTime) / 1000);
+                    this.timerText.setText('Time: ' + elapsedSeconds + 's');
+                }
+            },
+            callbackScope: this, // Ensure 'this' refers to the scene
+            loop: true
+        });
     };
 
     // Add showPlayAgainButton method to the scene
