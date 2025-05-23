@@ -45,30 +45,6 @@ const TIMER_FONT_FAMILY = 'Arial';
 const TIMER_TEXT_COLOR = '#FFFFFF';
 const TIMER_INITIAL_TEXT = 'Time: 0s';
 
-// Game configuration
-const gameConfig = {
-    type: Phaser.AUTO,
-    scale: {
-        mode: Phaser.Scale.NONE,
-        parent: 'game-container',
-        width: BASE_WIDTH,
-        height: BASE_HEIGHT
-    },
-    backgroundColor: '#000000',
-    physics: {
-        default: 'arcade',
-        arcade: {
-            debug: false
-        }
-    },
-    scene: {
-        preload: preload,
-        create: create,
-        update: update,
-        _createButton: _createButton // Add helper to scene object
-    }
-};
-
 // Private helper function to create buttons
 // This function is intended to be called with `this` bound to the scene context
 function _createButton(x, y, text, onClickAction) {
@@ -189,7 +165,6 @@ function _createButton(x, y, text, onClickAction) {
         text: buttonText
     };
 }
-
 
 function preload() {
     // Add loading error handler
@@ -353,6 +328,30 @@ function update() {
     // Check collisions
     this.goalManager.checkCollisions(this.car);
 }
+
+// Game configuration
+const gameConfig = {
+    type: Phaser.AUTO,
+    scale: {
+        mode: Phaser.Scale.NONE,
+        parent: 'game-container',
+        width: BASE_WIDTH,
+        height: BASE_HEIGHT
+    },
+    backgroundColor: '#000000',
+    physics: {
+        default: 'arcade',
+        arcade: {
+            debug: false
+        }
+    },
+    scene: {
+        preload: preload,
+        create: create,
+        update: update,
+        _createButton: _createButton // Add helper to scene object
+    }
+};
 
 // Create game instance
 let game = new Phaser.Game(gameConfig);
