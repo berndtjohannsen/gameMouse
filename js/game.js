@@ -196,6 +196,8 @@ function preload() {
 }
 
 function create() {
+    this._createButton = _createButton; // Explicitly make it a method of this scene instance
+
     console.log('Creating game scene...');
     
     // Initialize sound manager first
